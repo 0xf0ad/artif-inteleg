@@ -18,6 +18,8 @@ struct Matrix{
 
 // params: pointer to the matrix to be initialized and it's rows and colums
 void init_mat(struct Matrix* mat, size_t rows, size_t colums){
+	if(!rows || !colums)
+		assert(0);
 	mat->rows = rows;
 	mat->colums = colums;
 	mat->entries = (double*) malloc(sizeof(double) * rows * colums);
@@ -49,7 +51,7 @@ void set_element(const struct Matrix* mat, size_t row, size_t colum, double valu
 }
 
 double rand_double(void){
-	return ((double) rand()) / ((double) RAND_MAX);
+	return (2 * ((double) rand())) / ((double) RAND_MAX) - 1.0l;
 }
 
 // free allocated memory for the matrix
@@ -79,42 +81,41 @@ void cpy_mat(struct Matrix* dest, const struct Matrix* src){
 	// initialize the dest matrix (its should be uninitialized before this function)
 	init_mat(dest, src->rows, src->colums);
 	// copy the data from src matrix to the dest matrix
-	memcpy(dest->entries, src->entries, (src->rows * src->colums));
+	memcpy(dest->entries, src->entries, sizeof(src->entries[0]) * src->rows * src->colums);
 }
 
 void randomize_mat(struct Matrix* mat){
 	srand(time(NULL));
-	fill_mat(mat, 0.0);
-	/*for(size_t i = 0; i != mat->colums; i++)
+	for(size_t i = 0; i != mat->colums; i++)
 		for(size_t j = 0; j != mat->rows; j++)
-			set_element(mat, j, i, rand_double());*/
+			set_element(mat, j, i, rand_double());
 }
 
-struct Matrix square_mat(struct Matrix* mat){
-	for(size_t i = 0; i != mat->colums; i++)
+void square_mat(struct Matrix* mat){
+	for(size_t i = 0; i != mat->colums; i++){
 		for(size_t j = 0; j != mat->rows; j++){
 			double crntelem = get_element(mat, j, i);
 			set_element(mat, j, i, crntelem * crntelem);
 		}
+	}
 }
 
 // segmoid mathematical function
 double segmoid(double num){
-	return 1.0l/(1.0l + expl(-num));
+	return 1/(1 + expl(-num));
 }
 
 
 // apply the segmoid function on a matrix
 struct Matrix segmoid_mat(struct Matrix* mat){
 	struct Matrix result;
-	cpy_mat(&result, mat);
-	for (size_t i = 0; i != result.rows; i++)
-		for (size_t j = 0; j != result.colums; j++){
-			double* crnt = get_adr_element(&result, i, j);
-			if(!crnt)
-				assert(1);
-			*crnt = segmoid(*crnt);
+	init_mat(&result, mat->rows, mat->colums);
+	for (size_t i = 0; i != mat->rows; i++){
+		for (size_t j = 0; j != mat->colums; j++){
+			double crnt = get_element(mat, i, j);
+			set_element(&result, i, j, segmoid(crnt));
 		}
+	}
 	return result;
 }
 
@@ -147,22 +148,23 @@ struct Matrix dot_mat_mat(const struct Matrix* mat1, const struct Matrix* mat2){
 	}
 }
 
-struct Matrix dot(struct Matrix *m1, struct Matrix *m2) {
-	if (m1->colums == m2->rows) {
-		struct Matrix m ; init_mat(&m, m1->rows, m2->colums);
-		for (int i = 0; i < m1->rows; i++) {
-			for (int j = 0; j < m2->colums; j++) {
+struct Matrix dot(struct Matrix *m1, struct Matrix *m2){
+	if (m1->colums == m2->rows){
+		struct Matrix result;
+		init_mat(&result, m1->rows, m2->colums);
+		for (size_t i = 0; i < m1->rows; i++){
+			for (size_t j = 0; j < m2->colums; j++){
 				double sum = 0;
-				for (int k = 0; k < m2->rows; k++) {
+				for (size_t k = 0; k < m2->rows; k++)
 					sum += get_element(m1, i, k) * get_element(m2, k, j);
-				}
-				set_element(&m, i, j, sum);
+
+				set_element(&result, i, j, sum);
 			}
 		}
-		return m;
+		return result;
 	} else {
-		printf("Dimension mistmatch dot: %dx%d %dx%d\n", m1->rows, m1->colums, m2->rows, m2->colums);
-		exit(1);
+		printf("Dimension mistmatch dot: %ldx%ld %ldx%ld\n", m1->rows, m1->colums, m2->rows, m2->colums);
+		assert(0);
 	}
 }
 
