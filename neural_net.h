@@ -52,12 +52,11 @@ void free_net(struct NeuralNet* net){
 	net->learning_rate = 0.0l;
 }
 
-void network_train(struct NeuralNet* net, struct Matrix* in_mat, struct Matrix* out_mat){
+inline void network_train(struct NeuralNet* net, struct Matrix* in_mat, struct Matrix* out_mat){
 	// feed-forward
 	uint32_t num_layers = net->num_layers;
 	struct Matrix in_layers[num_layers - 1];
 	struct Matrix activations[num_layers];
-	struct Matrix* output_layer = &activations[num_layers - 1];
 	activations[0] = *in_mat;
 	// dot every matrix layer with the matrix of the prev layer exept for the input layer
 	// and apply the segmoid function to obtain the output
@@ -109,7 +108,7 @@ void network_train_batch_imgs(struct NeuralNet* net, struct Data* data, size_t b
 	}
 }
 
-struct Matrix network_predict(struct NeuralNet* net, struct Matrix* input_data){
+inline struct Matrix network_predict(struct NeuralNet* net, struct Matrix* input_data){
 	struct Matrix inputs[net->num_layers];
 	struct Matrix outputs[net->num_layers];
 	outputs[0] = *input_data;

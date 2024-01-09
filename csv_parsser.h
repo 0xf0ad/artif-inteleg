@@ -20,7 +20,7 @@ struct Data{
 
 // returns an array which the first element is the number of line in a file
 // and other elements are the lenght of lines by order (the i-th line lengh is the (i+1)-th element of the array)
-size_t count_lines(FILE* file){
+inline size_t count_lines(FILE* file){
 	size_t counter = 0;
 
 	while(!feof_unlocked(file))
@@ -35,7 +35,7 @@ size_t count_lines(FILE* file){
 
 // WARNNING : the char** that will b returned is heap-allocated so you should free it
 // and also all the strings who is pointed to
-const char** extract_lines(const char* filename, size_t* num_lines){
+inline const char** extract_lines(const char* filename, size_t* num_lines){
 	FILE* file = fopen(filename, "r");
 
 	if(!file){
@@ -102,8 +102,6 @@ struct Data* csv_parss(const char* filename, size_t* p_num_objects){
 		data[i].mat.entries[INPUT_NODES] = 1.0l;
 		// to devide every element by 255 to get to the range 0 to 1
 		dev_mat_scalar(&data[i].mat, 255);
-		//printf("LABEL : %d\n", data[i].label);
-		//print_mat(&data[i].mat);
 		free( (void*) strings[i]);
 	}
 	free(strings);
@@ -114,7 +112,7 @@ struct Data* csv_parss(const char* filename, size_t* p_num_objects){
 // AI is widely known for its unsecurity
 // I m talking like my function cointain zero vulnrabilities
 // if my elf file was provided in a CTF it will be cracked in 3 seconds
-char** read_file_lines(const char* filename, int* line_count) {
+inline char** read_file_lines(const char* filename, int* line_count) {
 	FILE* file = fopen(filename, "r");
 	if (file == NULL) {
 		printf("Failed to open the file.\n");
@@ -170,8 +168,5 @@ char** read_file_lines(const char* filename, int* line_count) {
 	fclose(file);
 	return lines;
 }
-
-
-
 
 #endif
