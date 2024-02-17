@@ -1,2 +1,2 @@
 default:
-	gcc main.c -lm -Wall -Wextra -O3
+	gcc aids.c main.c -lm -Wall -Wextra -O3
