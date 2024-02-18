@@ -2,6 +2,7 @@
 #include "neural_net.h"
 #include "csv_parsser.h"
 #include <math.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -53,12 +54,12 @@ void network_train(neuralnet_t* net, matrix_t* in_mat, matrix_t* out_mat){
 	// dot every matrix layer with the matrix of the prev layer exept for the input layer
 	// and apply the segmoid function to obtain the output
 	for(size_t i = 0; i != (num_layers - 1); i++){
-		in_layers[i] = dot_mat_mat(&net->weights[i], &activations[i]);
-		in_layers[i] = add_mat_mat(&net->bias[i], &in_layers[i]);
+		matrix_t dot_mat = dot_mat_mat(&net->weights[i], &activations[i]);
+		in_layers[i] = add_mat_mat(&net->bias[i], &dot_mat);
+		free_mat(&dot_mat);
 		activations[i+1] = segmoid_mat(&in_layers[i]);
 	}
 
-	// errors
 	matrix_t errors[num_layers];
 	errors[num_layers-1] = sub_mat_mat(out_mat, &activations[num_layers - 1]);
 	// calculat error for each layer backward
@@ -71,23 +72,29 @@ void network_train(neuralnet_t* net, matrix_t* in_mat, matrix_t* out_mat){
 	for(uint32_t i = (num_layers - 1); i != 0; i--){
 		matrix_t sigmoid_primed_act = sigmoidPrime(&activations[i]);
 		matrix_t delta = mul_mat_mat(&errors[i], &sigmoid_primed_act);
-
+		free_mat(&sigmoid_primed_act);
 
 		free_mat(&net->bias[i-1]);
 		net->bias[i-1] = delta;
 
 		matrix_t transposed_act = trans_mat(&activations[i-1]);
 		matrix_t new_weights = dot_mat_mat(&delta, &transposed_act);
+		free_mat(&transposed_act);
 		mul_mat_scalar(&new_weights ,net->learning_rate);
 		matrix_t added_mat = add_mat_mat(&net->weights[i-1], &new_weights);
 
 		free_mat(&net->weights[i-1]); // Free the old weights before replacing
 		net->weights[i-1] = add_mat_mat(&added_mat, &new_weights);
-
-		free_mat(&sigmoid_primed_act);
-		free_mat(&transposed_act);
+		free_mat(&added_mat);
 		free_mat(&new_weights);
 	}
+
+	/*for(uint32_t i = 0; i != (num_layers-1); i++){
+		free_mat(&in_layers[i]);
+		free_mat(&activations[i+1]);
+		free_mat(&errors[i]);
+	}
+	free_mat(&errors[num_layers - 1]);*/
 }
 
 void network_train_batch_imgs(neuralnet_t* net, data_t* data, size_t batch_size){
@@ -110,8 +117,9 @@ matrix_t network_predict(neuralnet_t* net, matrix_t* input_data){
 	outputs[0] = *input_data;
 
 	for(size_t i = 1; i != net->num_layers; i++){
-		inputs[i] = dot_mat_mat(&net->weights[i-1], &outputs[i-1]);
-		inputs[i] = add_mat_mat(&inputs[i], &net->bias[i-1]);
+		matrix_t dot_mat = dot_mat_mat(&net->weights[i-1], &outputs[i-1]);
+		inputs[i] = add_mat_mat(&dot_mat, &net->bias[i-1]);
+		free_mat(&dot_mat);
 		outputs[i] = segmoid_mat(&inputs[i]);
 	}
 

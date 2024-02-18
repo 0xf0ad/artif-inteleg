@@ -15,14 +15,14 @@ int main(int argc, char** argv){
 
 	//TRAINING
 	size_t number_imgs;
-	size_t num_layers[] = {784, 30, 10};
+	size_t num_layers[] = {784, 256, 10};
 	
 	printf("parssing %s\n", trainfilepath);
 	data_t* imgs = csv_parss(trainfilepath, &number_imgs);
 	printf("kaynin %ld tswirra\n", number_imgs);
 	neuralnet_t net;
 	
-	init_net(&net, num_layers, arr_size(num_layers), 0.1f);
+	init_net(&net, num_layers, arr_size(num_layers), 3.f);
 	network_train_batch_imgs(&net, imgs, number_imgs);
 
 	// PREDICTING
