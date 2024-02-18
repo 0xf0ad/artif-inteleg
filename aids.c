@@ -1,5 +1,10 @@
+#include "matrix.h"
 #include "neural_net.h"
 #include "csv_parsser.h"
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 void init_net(neuralnet_t* net, size_t* p_layer_sizes, uint32_t p_num_layers, double p_learning_rate){
 	net->learning_rate = p_learning_rate;
@@ -10,6 +15,9 @@ void init_net(neuralnet_t* net, size_t* p_layer_sizes, uint32_t p_num_layers, do
 	size_t num_weights = 0;
 	for(uint32_t i = 1; i != p_num_layers; i++)
 		num_weights += p_layer_sizes[i] * p_layer_sizes[i-1];
+
+	init_mat(&net->bias, p_num_layers - 1, 1);
+	fill_mat(&net->bias, 0.l);
 
 	net->num_weights = num_weights;
 	net->weights = (matrix_t*) malloc(sizeof(matrix_t) * (p_num_layers - 1));
@@ -44,7 +52,7 @@ void network_train(neuralnet_t* net, matrix_t* in_mat, matrix_t* out_mat){
 	// and apply the segmoid function to obtain the output
 	for(size_t i = 0; i != (num_layers - 1); i++){
 		in_layers[i] = dot_mat_mat(&net->weights[i], &activations[i]);
-		//in_layers[i] = add_mat_scalar(&tmp, net->biases[i]);
+		in_layers[i] = add_mat_scalar(&in_layers[i], get_element(&net->bias, i, 0));
 		activations[i+1] = segmoid_mat(&in_layers[i]);
 	}
 
@@ -59,20 +67,24 @@ void network_train(neuralnet_t* net, matrix_t* in_mat, matrix_t* out_mat){
 	}
 
 	for(uint32_t i = (num_layers - 1); i != 0; i--){
-		matrix_t sigmoid_primed_mat = sigmoidPrime(&activations[i]);
-		matrix_t multiplied_mat = mul_mat_mat(&errors[i], &sigmoid_primed_mat);
-		matrix_t transposed_mat = trans_mat(&activations[i-1]);
-		matrix_t dot_mat = dot_mat_mat(&multiplied_mat, &transposed_mat);
-		mul_mat_scalar(&dot_mat ,net->learning_rate);
-		matrix_t added_mat = add_mat_mat(&net->weights[i-1], &dot_mat);
+		matrix_t sigmoid_primed_act = sigmoidPrime(&activations[i]);
+		matrix_t delta = mul_mat_mat(&errors[i], &sigmoid_primed_act);
+		//printf("============ delta ===============\n");
+		//print_mat(&delta);
+		//printf("============ biases ==============\n");
+		//print_mat(&net->bias);
+		matrix_t transposed_act = trans_mat(&activations[i-1]);
+		matrix_t new_weights = dot_mat_mat(&delta, &transposed_act);
+		mul_mat_scalar(&new_weights ,net->learning_rate);
+		matrix_t added_mat = add_mat_mat(&net->weights[i-1], &new_weights);
 
 		free_mat(&net->weights[i-1]); // Free the old weights before replacing
 		net->weights[i-1] = added_mat;
 
-		free_mat(&sigmoid_primed_mat);
-		free_mat(&multiplied_mat);
-		free_mat(&transposed_mat);
-		free_mat(&dot_mat);
+		free_mat(&sigmoid_primed_act);
+		free_mat(&delta);
+		free_mat(&transposed_act);
+		free_mat(&new_weights);
 	}
 }
 

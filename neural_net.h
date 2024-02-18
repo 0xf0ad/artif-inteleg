@@ -3,17 +3,15 @@
 
 #include "csv_parsser.h"
 #include "matrix.h"
-#include <math.h>
 #include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
 
 typedef struct{
 	uint32_t num_layers;
 	size_t* layer_sizes;
 	size_t num_weights;
-	// NOTE : that num_weights doesnt indicate the size of the array
+	// NOTE : that num_weights doesnt indicate the size of the weights array
 	// it`s actually size is (num_layers - 1)
+	matrix_t bias;
 	matrix_t* weights;
 	double learning_rate;
 } neuralnet_t;

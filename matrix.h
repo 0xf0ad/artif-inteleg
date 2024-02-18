@@ -17,7 +17,7 @@ typedef struct{
 } matrix_t;
 
 // params: pointer to the matrix to be initialized and it's rows and colums
-inline void init_mat(matrix_t* mat, size_t rows, size_t colums){
+inline void init_mat(matrix_t* mat, size_t rows, size_t colums) {
 	if(!rows || !colums)
 		assert(0);
 	mat->rows = rows;
@@ -26,40 +26,40 @@ inline void init_mat(matrix_t* mat, size_t rows, size_t colums){
 }
 
 // fill the entire matrix with one single value
-inline void fill_mat(matrix_t* mat, double val){
+inline void fill_mat(matrix_t* mat, double val) {
 	size_t iters = mat->rows * mat->colums;
 	for(size_t i = 0; i != iters; i++)
 		mat->entries[i] = val;
 }
 
 // get a single element from the matrix based on its row and colum
-inline double get_element(const matrix_t* mat, size_t row, size_t colum){
+inline double get_element(const matrix_t* mat, size_t row, size_t colum) {
 	return mat->entries[(mat->rows * colum) + row];
 }
 
 // get the adress of an element
-inline double* get_adr_element(const matrix_t* mat, size_t row, size_t colum){
+inline double* get_adr_element(const matrix_t* mat, size_t row, size_t colum) {
 	return &mat->entries[(mat->rows * colum) + row];
 }
 
 // set a single element from the matrix based on its row and colum by the given value
-inline void set_element(const matrix_t* mat, size_t row, size_t colum, double value){
+inline void set_element(const matrix_t* mat, size_t row, size_t colum, double value) {
 	mat->entries[(mat->rows * colum) + row] = value;
 }
 
-inline double rand_double(void){
+inline double rand_double(void) {
 	return (2 * ((double) rand())) / ((double) RAND_MAX) - 1.0l;
 }
 
 // free allocated memory for the matrix
-inline void free_mat(matrix_t* mat){
+inline void free_mat(matrix_t* mat) {
 	mat->colums = 0;
 	mat->rows = 0;
 	free(mat->entries);
 	mat->entries = NULL;
 }
 
-inline void print_mat(const matrix_t* mat){
+inline void print_mat(const matrix_t* mat) {
 	for(size_t i = 0; i != mat->colums; i++){
 		printf("[");
 		for(size_t j = 0; j != mat->rows; j++){
@@ -73,21 +73,21 @@ inline void print_mat(const matrix_t* mat){
 
 // src matrix should be unintializd
 // otherwise it will get overwritten
-inline void cpy_mat(matrix_t* dest, const matrix_t* src){
+inline void cpy_mat(matrix_t* dest, const matrix_t* src) {
 	// initialize the dest matrix (its should be uninitialized before this function)
 	init_mat(dest, src->rows, src->colums);
 	// copy the data from src matrix to the dest matrix
 	memcpy(dest->entries, src->entries, sizeof(src->entries[0]) * src->rows * src->colums);
 }
 
-inline void randomize_mat(matrix_t* mat){
+inline void randomize_mat(matrix_t* mat) {
 	srand(time(NULL));
 	for(size_t i = 0; i != mat->colums; i++)
 		for(size_t j = 0; j != mat->rows; j++)
 			set_element(mat, j, i, rand_double());
 }
 
-inline void square_mat(matrix_t* mat){
+inline void square_mat(matrix_t* mat) {
 	for(size_t i = 0; i != mat->colums; i++){
 		for(size_t j = 0; j != mat->rows; j++){
 			double crntelem = get_element(mat, j, i);
@@ -97,12 +97,12 @@ inline void square_mat(matrix_t* mat){
 }
 
 // segmoid mathematical function
-inline double segmoid(double num){
+inline double segmoid(double num) {
 	return 1/(1 + expl(-num));
 }
 
 // apply the segmoid function on a matrix
-inline matrix_t segmoid_mat(matrix_t* mat){
+inline matrix_t segmoid_mat(const matrix_t* mat) {
 	matrix_t result;
 	init_mat(&result, mat->rows, mat->colums);
 	for (size_t i = 0; i != mat->rows; i++){
@@ -118,7 +118,7 @@ inline matrix_t segmoid_mat(matrix_t* mat){
 #define check_dimensions(mat1, mat2) ((mat1->rows) == (mat2->rows) && (mat1->colums) == (mat2->colums))
 
 // matrix dot product
-inline matrix_t dot_mat_mat(const matrix_t* mat1, const matrix_t* mat2){
+inline matrix_t dot_mat_mat(const matrix_t* mat1, const matrix_t* mat2) {
 	if(mat1->colums == mat2->rows){
 		matrix_t result;
 		init_mat(&result, mat1->rows, mat2->colums);
@@ -174,7 +174,7 @@ inline void dev_mat_scalar(const matrix_t* mat, const double number) {
 }
 
 // matrix addition
-inline matrix_t add_mat_mat(const matrix_t* mat1, const matrix_t* mat2){
+inline matrix_t add_mat_mat(const matrix_t* mat1, const matrix_t* mat2) {
 	if (check_dimensions(mat1, mat2)) {
 		matrix_t result;
 		init_mat(&result, mat1->rows, mat1->colums);
@@ -204,7 +204,7 @@ inline matrix_t add_mat_scalar(const matrix_t* mat, const double number) {
 }
 
 // matrix subtraction
-inline matrix_t sub_mat_mat(const matrix_t* mat1, const matrix_t* mat2){
+inline matrix_t sub_mat_mat(const matrix_t* mat1, const matrix_t* mat2) {
 	if (check_dimensions(mat1, mat2)) {
 		matrix_t result;
 		init_mat(&result, mat1->rows, mat1->colums);
@@ -223,7 +223,7 @@ inline matrix_t sub_mat_mat(const matrix_t* mat1, const matrix_t* mat2){
 }
 
 // matrix transposition
-inline matrix_t trans_mat(const matrix_t* mat){
+inline matrix_t trans_mat(const matrix_t* mat) {
 	matrix_t result;
 	init_mat(&result, mat->colums, mat->rows);
 
@@ -235,14 +235,18 @@ inline matrix_t trans_mat(const matrix_t* mat){
 }
 
 // apply the derivative of the segmoid finction to a matrix
-inline matrix_t sigmoidPrime(matrix_t* mat) {
+inline matrix_t sigmoidPrime(const matrix_t* mat) {
 	matrix_t ones;
 	init_mat(&ones, mat->rows, mat->colums);
 	fill_mat(&ones, 1.0);
 	matrix_t subtracted = sub_mat_mat(&ones, mat);
-	matrix_t multiplied = mul_mat_mat(mat, &subtracted);
 	free_mat(&ones);
+	matrix_t seg_1_mat = segmoid_mat(&subtracted);
 	free_mat(&subtracted);
+	matrix_t seg_mat   = segmoid_mat(mat);
+	matrix_t multiplied = mul_mat_mat(&seg_mat, &seg_1_mat);
+	free_mat(&seg_1_mat);
+	free_mat(&seg_mat);
 	return multiplied;
 }
 

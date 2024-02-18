@@ -2,10 +2,6 @@
 #define CSV_PARSS_H_
 
 #include "matrix.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
 
 // the number of nodes in the input layer
 // it is fixed because I will be trainning only the MNIST set
