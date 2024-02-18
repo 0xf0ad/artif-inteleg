@@ -11,7 +11,7 @@ typedef struct{
 	size_t num_weights;
 	// NOTE : that num_weights doesnt indicate the size of the weights array
 	// it`s actually size is (num_layers - 1)
-	matrix_t bias;
+	matrix_t* bias;
 	matrix_t* weights;
 	double learning_rate;
 } neuralnet_t;

@@ -115,7 +115,7 @@ inline matrix_t segmoid_mat(const matrix_t* mat) {
 }
 
 // WARNIING: this works only with pointers
-#define check_dimensions(mat1, mat2) ((mat1->rows) == (mat2->rows) && (mat1->colums) == (mat2->colums))
+#define check_dimensions(mat1, mat2) (((mat1->rows) == (mat2->rows)) && ((mat1->colums) == (mat2->colums)))
 
 // matrix dot product
 inline matrix_t dot_mat_mat(const matrix_t* mat1, const matrix_t* mat2) {

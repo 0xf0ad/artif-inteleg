@@ -15,15 +15,15 @@ void init_net(neuralnet_t* net, size_t* p_layer_sizes, uint32_t p_num_layers, do
 	size_t num_weights = 0;
 	for(uint32_t i = 1; i != p_num_layers; i++)
 		num_weights += p_layer_sizes[i] * p_layer_sizes[i-1];
-
-	init_mat(&net->bias, p_num_layers - 1, 1);
-	fill_mat(&net->bias, 0.l);
-
 	net->num_weights = num_weights;
+
+	net->bias    = (matrix_t*) malloc(sizeof(matrix_t) * (p_num_layers - 1));
 	net->weights = (matrix_t*) malloc(sizeof(matrix_t) * (p_num_layers - 1));
 	for(uint32_t i = 0; i != (p_num_layers - 1); i++){
-		// encouter for the biasses therfor we add one row and one colum for them
-		init_mat(&net->weights[i], p_layer_sizes[i+1] + 1 , p_layer_sizes[i] + 1);
+		init_mat(&net->bias[i], p_layer_sizes[i+1], 1);
+		randomize_mat(&net->bias[i]);
+
+		init_mat(&net->weights[i], p_layer_sizes[i+1], p_layer_sizes[i]);
 		randomize_mat(&net->weights[i]);
 	}
 }
@@ -33,8 +33,10 @@ void free_net(neuralnet_t* net){
 	free(net->layer_sizes);
 	net->layer_sizes = NULL;
 
-	for(size_t i = 0; i != net->num_layers; i++)
+	for(size_t i = 0; i != net->num_layers; i++){
 		free_mat(&net->weights[i]);
+		free_mat(&net->bias[i]);
+	}
 
 	net->num_weights = 0;
 	free(net->weights);
@@ -52,7 +54,7 @@ void network_train(neuralnet_t* net, matrix_t* in_mat, matrix_t* out_mat){
 	// and apply the segmoid function to obtain the output
 	for(size_t i = 0; i != (num_layers - 1); i++){
 		in_layers[i] = dot_mat_mat(&net->weights[i], &activations[i]);
-		in_layers[i] = add_mat_scalar(&in_layers[i], get_element(&net->bias, i, 0));
+		in_layers[i] = add_mat_mat(&net->bias[i], &in_layers[i]);
 		activations[i+1] = segmoid_mat(&in_layers[i]);
 	}
 
@@ -69,20 +71,20 @@ void network_train(neuralnet_t* net, matrix_t* in_mat, matrix_t* out_mat){
 	for(uint32_t i = (num_layers - 1); i != 0; i--){
 		matrix_t sigmoid_primed_act = sigmoidPrime(&activations[i]);
 		matrix_t delta = mul_mat_mat(&errors[i], &sigmoid_primed_act);
-		//printf("============ delta ===============\n");
-		//print_mat(&delta);
-		//printf("============ biases ==============\n");
-		//print_mat(&net->bias);
+
+
+		free_mat(&net->bias[i-1]);
+		net->bias[i-1] = delta;
+
 		matrix_t transposed_act = trans_mat(&activations[i-1]);
 		matrix_t new_weights = dot_mat_mat(&delta, &transposed_act);
 		mul_mat_scalar(&new_weights ,net->learning_rate);
 		matrix_t added_mat = add_mat_mat(&net->weights[i-1], &new_weights);
 
 		free_mat(&net->weights[i-1]); // Free the old weights before replacing
-		net->weights[i-1] = added_mat;
+		net->weights[i-1] = add_mat_mat(&added_mat, &new_weights);
 
 		free_mat(&sigmoid_primed_act);
-		free_mat(&delta);
 		free_mat(&transposed_act);
 		free_mat(&new_weights);
 	}
@@ -93,8 +95,7 @@ void network_train_batch_imgs(neuralnet_t* net, data_t* data, size_t batch_size)
 		printf("training on image No: %zu   %.2f%%\r", i+1, ((float)(i+1) / (float)batch_size) * 100.f);
 		data_t* cur_data = &data[i];
 		matrix_t output;
-		// 10 outputs and a bias its just easier to add biases to all layers
-		init_mat(&output, 11, 1);
+		init_mat(&output, 10, 1);
 		fill_mat(&output, 0.0l);
 		set_element(&output, cur_data->label, 0, 1);
 		network_train(net, &cur_data->mat, &output);
@@ -110,6 +111,7 @@ matrix_t network_predict(neuralnet_t* net, matrix_t* input_data){
 
 	for(size_t i = 1; i != net->num_layers; i++){
 		inputs[i] = dot_mat_mat(&net->weights[i-1], &outputs[i-1]);
+		inputs[i] = add_mat_mat(&inputs[i], &net->bias[i-1]);
 		outputs[i] = segmoid_mat(&inputs[i]);
 	}
 
@@ -175,7 +177,7 @@ const char** extract_lines(const char* filename, size_t* num_lines){
 	if(!str){
 		fprintf(stderr, "ERROR: da hell r u running this on ?\n");
 		fprintf(stderr, "ERROR: we didnt start yet and r already running out of memory\n");
-		fprintf(stderr, "ERROR: bro buy your new potatos\n");
+		fprintf(stderr, "ERROR: bro buy yourself new potatos\n");
 		fclose(file);
 		return NULL;
 	}
@@ -214,7 +216,7 @@ data_t* csv_parss(const char* filename, size_t* p_num_objects){
 		data[i].label = strings[i][0] - '0';
 		// we expect consumming a char for the label and an other for the comma ,
 		const char* string_offset = (strings[i] + 2);
-		init_mat(&data[i].mat, INPUT_NODES + 1, 1);
+		init_mat(&data[i].mat, INPUT_NODES, 1);
 		for(size_t j = 0; j != INPUT_NODES; j++){
 			sscanf(string_offset, "%lf", &data[i].mat.entries[j]);
 			// we add a one to encounter the comma character
