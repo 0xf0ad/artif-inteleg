@@ -232,10 +232,10 @@ data_t* csv_parss(const char* filename, size_t* p_num_objects){
 		}
 		// that is for bias
 		// I know it should not be on an input layer but being there just simplify thinks
-		data[i].mat.entries[INPUT_NODES] = 1.0l;
+		//data[i].mat.entries[INPUT_NODES] = 1.0l;
 		// to devide every element by 255 to get to the range 0 to 1
 		dev_mat_scalar(&data[i].mat, 255);
-		free( (void*) strings[i]);
+		free((void*) strings[i]);
 	}
 	free(strings);
 	return data;
