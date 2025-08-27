@@ -1,7 +1,6 @@
 #include "matrix.h"
 #include "neural_net.h"
 #include "csv_parsser.h"
-#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -48,53 +47,47 @@ void free_net(neuralnet_t* net){
 void network_train(neuralnet_t* net, matrix_t* in_mat, matrix_t* out_mat){
 	// feed-forward
 	uint32_t num_layers = net->num_layers;
-	matrix_t in_layers[num_layers - 1];
+	matrix_t errors[num_layers];
 	matrix_t activations[num_layers];
+
 	activations[0] = *in_mat;
-	// dot every matrix layer with the matrix of the prev layer exept for the input layer
-	// and apply the segmoid function to obtain the output
-	for(size_t i = 0; i != (num_layers - 1); i++){
+	for(uint32_t i = 0; i < (num_layers - 1); i++){
 		matrix_t dot_mat = dot_mat_mat(&net->weights[i], &activations[i]);
-		in_layers[i] = add_mat_mat(&net->bias[i], &dot_mat);
+		matrix_t in_layers = add_mat_mat(&net->bias[i], &dot_mat);
+		activations[i+1] = segmoid_mat(&in_layers);
 		free_mat(&dot_mat);
-		activations[i+1] = segmoid_mat(&in_layers[i]);
+		free_mat(&in_layers);
 	}
 
-	matrix_t errors[num_layers];
-	errors[num_layers-1] = sub_mat_mat(out_mat, &activations[num_layers - 1]);
-	// calculat error for each layer backward
-	for(uint32_t i = (num_layers - 2); i != 0; i--){
+	errors[num_layers-1] = sub_mat_mat(out_mat, &activations[num_layers-1]);
+	for(uint32_t i = num_layers - 2; i > 0; i--){
 		matrix_t transposed_mat = trans_mat(&net->weights[i]);
 		errors[i] = dot_mat_mat(&transposed_mat, &errors[i+1]);
 		free_mat(&transposed_mat);
 	}
 
-	for(uint32_t i = (num_layers - 1); i != 0; i--){
+	for(int32_t i = num_layers - 1; i > 0; i--){
 		matrix_t sigmoid_primed_act = sigmoidPrime(&activations[i]);
-		matrix_t delta = mul_mat_mat(&errors[i], &sigmoid_primed_act);
+		free_mat(&activations[i]);
+		matrix_t b_delta = mul_mat_mat(&errors[i], &sigmoid_primed_act);
+		free_mat(&errors[i]);
 		free_mat(&sigmoid_primed_act);
-
+		mul_mat_scalar(&b_delta, net->learning_rate);
+		matrix_t new_biases = add_mat_mat(&net->bias[i-1], &b_delta);
 		free_mat(&net->bias[i-1]);
-		net->bias[i-1] = delta;
+		net->bias[i-1] = new_biases;
 
 		matrix_t transposed_act = trans_mat(&activations[i-1]);
-		matrix_t new_weights = dot_mat_mat(&delta, &transposed_act);
+		matrix_t w_delta = dot_mat_mat(&b_delta, &transposed_act);
+		free_mat(&b_delta);
 		free_mat(&transposed_act);
-		mul_mat_scalar(&new_weights ,net->learning_rate);
-		matrix_t added_mat = add_mat_mat(&net->weights[i-1], &new_weights);
-
-		free_mat(&net->weights[i-1]); // Free the old weights before replacing
-		net->weights[i-1] = add_mat_mat(&added_mat, &new_weights);
-		free_mat(&added_mat);
-		free_mat(&new_weights);
+		mul_mat_scalar(&w_delta ,net->learning_rate);
+		matrix_t new_weights = add_mat_mat(&net->weights[i-1], &w_delta);
+		free_mat(&w_delta);
+		free_mat(&net->weights[i-1]);
+		net->weights[i-1] = new_weights;
 	}
 
-	/*for(uint32_t i = 0; i != (num_layers-1); i++){
-		free_mat(&in_layers[i]);
-		free_mat(&activations[i+1]);
-		free_mat(&errors[i]);
-	}
-	free_mat(&errors[num_layers - 1]);*/
 }
 
 void network_train_batch_imgs(neuralnet_t* net, data_t* data, size_t batch_size){
