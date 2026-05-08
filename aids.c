@@ -54,7 +54,7 @@ void free_net(neuralnet_t* net){
 void network_train(neuralnet_t* net, matrix_t* in_mat, matrix_t* out_mat){
 	// feed-forward
 	uint32_t num_layers = net->num_layers;
-	matrix_t errors[num_layers];
+	matrix_t in_layers[num_layers - 1];
 	matrix_t activations[num_layers];
 	cpy_mat(&activations[0], in_mat);
 	// dot every matrix layer with the matrix of the prev layer exept for the input layer
@@ -77,30 +77,31 @@ void network_train(neuralnet_t* net, matrix_t* in_mat, matrix_t* out_mat){
 	}
 
 	for(int32_t i = (num_layers - 1); i > 0; i--){
-		matrix_t sigmoid_primed_act = sigmoidPrime(&activations[i]);
-		matrix_t delta = mul_mat_mat(&errors[i], &sigmoid_primed_act);
+		matrix_t sigmoid_primed = sigmoidPrime(&in_layers[i-1]);
+		matrix_t delta = mul_mat_mat(&errors[i], &sigmoid_primed);
 
-
+		// Update bias: bias = bias + learning_rate * delta
+		matrix_t bias_gradient;
+		cpy_mat(&bias_gradient, &delta);
+		mul_mat_scalar(&bias_gradient, net->learning_rate);
+		matrix_t new_bias = add_mat_mat(&net->bias[i-1], &bias_gradient);
 		free_mat(&net->bias[i-1]);
 		net->bias[i-1] = new_bias;
+		free_mat(&bias_gradient);
 
 		// Update weights: weights = weights + learning_rate * (delta * activation^T)
 		matrix_t transposed_act = trans_mat(&activations[i-1]);
-		matrix_t new_weights = dot_mat_mat(&delta, &transposed_act);
-		mul_mat_scalar(&new_weights, net->learning_rate);
-		matrix_t added_mat = add_mat_mat(&net->weights[i-1], &new_weights);
+		matrix_t weight_gradient = dot_mat_mat(&delta, &transposed_act);
+		mul_mat_scalar(&weight_gradient, net->learning_rate);
+		matrix_t new_weights = add_mat_mat(&net->weights[i-1], &weight_gradient);
 
-		free_mat(&net->weights[i-1]);
-		net->weights[i-1] = added_mat;
-
-		free_mat(&sigmoid_primed_act);
-		free_mat(&delta);
-		free_mat(&transposed_act);
-		mul_mat_scalar(&w_delta ,net->learning_rate);
-		matrix_t new_weights = add_mat_mat(&net->weights[i-1], &w_delta);
-		free_mat(&w_delta);
 		free_mat(&net->weights[i-1]);
 		net->weights[i-1] = new_weights;
+
+		free_mat(&sigmoid_primed);
+		free_mat(&delta);
+		free_mat(&transposed_act);
+		free_mat(&weight_gradient);
 	}
 
 	for(uint32_t i = 0; i < num_layers - 1; i++){

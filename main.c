@@ -24,7 +24,7 @@ int main(int argc, char** argv){
 
 	neuralnet_t net;
 	// Test different learning rates
-	for(float i = 0.01f; i <= 0.5f; i += 0.01){
+	for(float i = 0.01f; i <= 2.f; i += 0.01){
 		double score = 0.l;
 		for(uint32_t j = 0; j < 5; j++){
 			init_net(&net, num_layers, arr_size(num_layers), i);
@@ -35,7 +35,7 @@ int main(int argc, char** argv){
 
 			// PREDICTING
 			score += network_predict_imgs(&net, imgstobepredected, number_imgs_predicted);
-			printf("%.2f, %.3f\r", i, (score / (j+1)));
+			printf("%.2f %.3f\r", i, (score / (j+1)));
 			free_net(&net);
 		}
 		printf("\n");
