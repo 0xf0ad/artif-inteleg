@@ -1,6 +1,7 @@
 #include "matrix.h"
 #include "neural_net.h"
 #include "csv_parsser.h"
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -53,7 +54,7 @@ void free_net(neuralnet_t* net){
 void network_train(neuralnet_t* net, matrix_t* in_mat, matrix_t* out_mat){
 	// feed-forward
 	uint32_t num_layers = net->num_layers;
-	matrix_t in_layers[num_layers - 1];
+	matrix_t errors[num_layers];
 	matrix_t activations[num_layers];
 	cpy_mat(&activations[0], in_mat);
 	// dot every matrix layer with the matrix of the prev layer exept for the input layer
@@ -79,10 +80,7 @@ void network_train(neuralnet_t* net, matrix_t* in_mat, matrix_t* out_mat){
 		matrix_t sigmoid_primed_act = sigmoidPrime(&activations[i]);
 		matrix_t delta = mul_mat_mat(&errors[i], &sigmoid_primed_act);
 
-		// Update bias: bias = bias + learning_rate * delta
-		matrix_t scaled_delta = delta;
-		mul_mat_scalar(&scaled_delta, net->learning_rate);
-		matrix_t new_bias = add_mat_mat(&net->bias[i-1], &scaled_delta);
+
 		free_mat(&net->bias[i-1]);
 		net->bias[i-1] = new_bias;
 
@@ -98,7 +96,11 @@ void network_train(neuralnet_t* net, matrix_t* in_mat, matrix_t* out_mat){
 		free_mat(&sigmoid_primed_act);
 		free_mat(&delta);
 		free_mat(&transposed_act);
-		free_mat(&new_weights);
+		mul_mat_scalar(&w_delta ,net->learning_rate);
+		matrix_t new_weights = add_mat_mat(&net->weights[i-1], &w_delta);
+		free_mat(&w_delta);
+		free_mat(&net->weights[i-1]);
+		net->weights[i-1] = new_weights;
 	}
 
 	for(uint32_t i = 0; i < num_layers - 1; i++){
