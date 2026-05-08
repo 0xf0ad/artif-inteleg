@@ -51,6 +51,12 @@ inline double rand_double(void) {
 	return (2 * ((double) rand())) / ((double) RAND_MAX) - 1.0l;
 }
 
+// Xavier/Glorot initialization for better weight initialization
+inline double rand_xavier(size_t fan_in, size_t fan_out) {
+	double limit = sqrt(6.0 / (fan_in + fan_out));
+	return (2 * ((double) rand())) / ((double) RAND_MAX) * limit - limit;
+}
+
 // free allocated memory for the matrix
 inline void free_mat(matrix_t* mat) {
 	mat->colums = 0;
@@ -71,7 +77,7 @@ inline void print_mat(const matrix_t* mat) {
 }
 
 
-// src matrix should be unintializd
+// dest matrix should be unintializd
 // otherwise it will get overwritten
 inline void cpy_mat(matrix_t* dest, const matrix_t* src) {
 	// initialize the dest matrix (its should be uninitialized before this function)
@@ -236,32 +242,37 @@ inline matrix_t trans_mat(const matrix_t* mat) {
 
 // apply the derivative of the segmoid finction to a matrix
 inline matrix_t sigmoidPrime(const matrix_t* mat) {
+#if 1
 	matrix_t ones;
 	init_mat(&ones, mat->rows, mat->colums);
 	fill_mat(&ones, 1.0);
 	matrix_t subtracted = sub_mat_mat(&ones, mat);
-	free_mat(&ones);
-	matrix_t seg_1_mat = segmoid_mat(&subtracted);
-	free_mat(&subtracted);
-	matrix_t seg_mat   = segmoid_mat(mat);
+	matrix_t seg_1_mat  = segmoid_mat(&subtracted);
+	matrix_t seg_mat    = segmoid_mat(mat);
 	matrix_t multiplied = mul_mat_mat(&seg_mat, &seg_1_mat);
+	free_mat(&ones);
+	free_mat(&subtracted);
 	free_mat(&seg_1_mat);
 	free_mat(&seg_mat);
 	return multiplied;
+#else
+	matrix_t ones;
+	init_mat(&ones, mat->rows, mat->colums);
+	fill_mat(&ones, 1.0);
+	matrix_t subtracted = sub_mat_mat(&ones, mat);
+	matrix_t multiplied = mul_mat_mat(mat, &subtracted);
+	free_mat(&ones);
+	free_mat(&subtracted);
+	return multiplied;
+#endif
 }
 
-// flaten matrix (IDK whats that, I escaped linear algebra class)
 inline matrix_t flatten_mat(matrix_t* mat, bool axis) {
 	// Axis = 0 -> raw Vector, Axis = 1 -> colum Vector
 	matrix_t result;
 	cpy_mat(&result, mat);
-	if(axis){
-		result.rows *= result.colums; 
-		result.colums = 1;
-	}else{
-		result.colums *= result.rows;
-		result.rows =1;
-	}
+	result.rows   = axis ? result.rows * result.colums : 1;
+	result.colums = axis ? 1 : result.rows * result.colums;
 	return result;
 }
 
@@ -283,7 +294,7 @@ inline matrix_t softmax(matrix_t* mat) {
 
 inline size_t matrix_argmax(matrix_t* mat){
 	// Expects a Mx1 matrix
-	double max_score = 0;
+	double max_score = 0.l;
 	size_t max_idx = 0;
 	for (size_t i = 0; i != mat->rows; i++){
 		if (get_element(mat, i, 0) > max_score){
